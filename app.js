@@ -63,11 +63,19 @@ getJSON = function(options, onResult) {
     req.end();
 };
 
+const DATA_FOR_ACCESS_TOKEN = {
+  grant_type: process.env.GRANT_TYPE,
+  client_id: process.env.CLIENT_ID,
+  client_secret: process.env.CLIENT_SECRET,
+  audience: process.env.AUDIENCE
+}
+
 var options_for_acess_token = {
     host: 'https://bthompson.auth0.com',
     port: 443,
     path: '/oauth/token',
     method: 'POST',
+    body: JSON.stringify(DATA_FOR_ACCESS_TOKEN),
     headers: {
         'Content-Type': 'application/json'
     }
@@ -78,6 +86,7 @@ var options_for_api_request = {
     port: 443,
     path: '/api/private',
     method: 'GET',
+    body: JSON.stringify(),
     headers: {
         'Content-Type': 'application/json'
     },
