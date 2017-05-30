@@ -28,78 +28,58 @@ app.use( require('request-param')() );
 
 // WIP
 
-var http = require("http");
-var https = require("https");
+const request = require('request');
 
-/**
- * getJSON:  REST get request returning JSON object(s)
- * @param options: http options object
- * @param callback: callback to pass the results JSON object(s) back
- */
-getJSON = function(options, onResult) {
-    console.log("rest::getJSON");
-
-    var prot = options.port == 443 ? https : http;
-    var req = prot.request(options, function(res)
-    {
-        var output = '';
-        console.log(options.host + ':' + res.statusCode);
-        res.setEncoding('utf8');
-
-        res.on('data', function (chunk) {
-            output += chunk;
-        });
-
-        res.on('end', function() {
-            var obj = JSON.parse(output);
-            onResult(res.statusCode, obj);
-        });
-    });
-
-    req.on('error', function(err) {
-        //res.send('error: ' + err.message);
-    });
-
-    req.end();
-};
+const AUTH_URL = 'https://bthompson.auth0.com/oauth/token';
+const API_URL  = 'http://localhost:3000/api/private';
 
 const DATA_FOR_ACCESS_TOKEN = {
   grant_type: process.env.GRANT_TYPE,
   client_id: process.env.CLIENT_ID,
   client_secret: process.env.CLIENT_SECRET,
   audience: process.env.AUDIENCE
-}
-
-var options_for_acess_token = {
-    host: 'https://bthompson.auth0.com',
-    port: 443,
-    path: '/oauth/token',
-    method: 'POST',
-    body: JSON.stringify(DATA_FOR_ACCESS_TOKEN),
-    headers: {
-        'Content-Type': 'application/json'
-    }
 };
 
-var options_for_api_request = {
-    host: 'localhost:3000',
-    port: 443,
-    path: '/api/private',
-    method: 'GET',
-    body: JSON.stringify(),
-    headers: {
-        'Content-Type': 'application/json'
-    },
-    credentials: 'include'
+var options_for_acess_token = {
+  method: 'POST',
+  url: AUTH_URL,
+  headers: { 'content-type': 'application/json' },
+  body: {
+    grant_type: process.env.GRANT_TYPE,
+    client_id: process.env.CLIENT_ID,
+    client_secret: process.env.CLIENT_SECRET,
+    audience: process.env.AUDIENCE
+   },
+  json: true
 };
 
 
 app.get('/', function(req,res,next) {
-  rest.getJSON(options_for_acess_token, function(statusCode, result) {
-      // I could work with the result html/json here.  I could also just return it
-      console.log("onResult: (" + statusCode + ")" + JSON.stringify(result));
-      res.statusCode = statusCode;
-      res.send(result);
+  console.log("INDEX ROUTE... DATA_FOR_ACCESS_TOKEN:",JSON.stringify(DATA_FOR_ACCESS_TOKEN));
+
+  request(options_for_acess_token, function (error, response, body) {
+    if (error) throw new Error(error);
+
+    console.log("ACCESS TOKEN:",body);
+
+    var access_token = body.access_token,
+        token_type   = body.token_type;
+
+    var options_for_api_request = {
+      method: 'GET',
+      url: API_URL,
+      headers: {
+        authorization: token_type + ' ' + access_token
+      }
+    };
+
+    request(options_for_api_request, function (error, response, body) {
+      if (error) throw new Error(error);
+      console.log("API REQUEST",body);
+
+      res.status(200).send(body);
+    });
+
   });
 });
 
